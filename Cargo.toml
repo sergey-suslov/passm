@@ -1,0 +1,21 @@
+[package]
+name = "passm"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace]
+members = ["crates/core", "crates/ui", "crates/shared"]
+
+[[bin]]
+name = "passm"        # The name of the target.
+path = "bin/passm.rs" # The source file of the target.
+
+
+[dependencies]
+log = { version = "0.4.14", features = [] }
+simple_logger = "4.0.0"
+anyhow = "1.0.66"
+tokio = { version = "1", features = ["full"] }
+core = { version = "0.1.0", path = "crates/core" }
