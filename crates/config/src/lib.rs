@@ -1,5 +1,4 @@
-pub mod signer;
-pub use pgp;
+pub mod config;
 
 #[cfg(test)]
 mod tests {

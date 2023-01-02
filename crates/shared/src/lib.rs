@@ -1,4 +1,5 @@
 pub mod events;
+pub mod console;
 pub mod state;
 pub mod password;
 

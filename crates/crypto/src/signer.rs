@@ -1,5 +1,3 @@
-use std::io::Read;
-
 use anyhow::{Ok, Result};
 use pgp::composed::{
     KeyType, SecretKey, SecretKeyParamsBuilder, SignedSecretKey, SubkeyParamsBuilder,
@@ -7,39 +5,38 @@ use pgp::composed::{
 use pgp::crypto::{HashAlgorithm, PublicKeyAlgorithm, SymmetricKeyAlgorithm};
 use pgp::packet::{self, SignatureConfig, SignatureConfigBuilder};
 use pgp::types::{CompressionAlgorithm, KeyTrait, SecretKeyRepr, SecretKeyTrait};
+use pgp::Deserializable;
 use rand::thread_rng;
 use rsa::{PaddingScheme, PublicKey};
 use smallvec::smallvec;
 
 pub struct Signer {
-    sig_cfg: SignatureConfig,
     signing_key: SignedSecretKey,
     passphrase: Option<String>,
 }
 
 impl Signer {
     pub fn new(signing_key: SignedSecretKey, passphrase: Option<String>) -> Self {
-        let now = chrono::Utc::now();
-        let mut sig_cfg_bldr = SignatureConfigBuilder::default();
-        let sig_cfg = sig_cfg_bldr
-            .version(packet::SignatureVersion::V4)
-            .typ(packet::SignatureType::Binary)
-            .pub_alg(PublicKeyAlgorithm::RSA)
-            .hash_alg(HashAlgorithm::SHA2_256)
-            .issuer(Some(signing_key.key_id()))
-            .created(Some(now))
-            .unhashed_subpackets(vec![]) // must be initialized
-            .hashed_subpackets(vec![
-                packet::Subpacket::SignatureCreationTime(now),
-                packet::Subpacket::Issuer(signing_key.key_id()),
-            ]) // must be initialized
-            .build()
-            .unwrap();
         Self {
-            sig_cfg,
             passphrase,
             signing_key,
         }
+    }
+
+    pub fn verify_key_passphrase(
+        ssk: &SignedSecretKey,
+        passphrase: Option<String>,
+    ) -> Result<(), pgp::errors::Error> {
+        ssk.unlock(
+            || passphrase.unwrap_or_else(|| "".to_owned()),
+            |_| std::result::Result::Ok(()),
+        )
+    }
+
+    pub fn parse_signed_secret_from_string(key: String) -> Result<SignedSecretKey> {
+        let (secret, _header) = SignedSecretKey::from_string(&key)?;
+        secret.verify()?;
+        Ok(secret)
     }
 
     pub fn generate_key(kt: KeyType, passphrase: Option<String>) -> SecretKey {
@@ -70,6 +67,11 @@ impl Signer {
         key_params
             .generate()
             .expect("failed to generate secret key, encrypted")
+    }
+
+    pub fn sign_key(sk: SecretKey, passphrase: Option<String>) -> SignedSecretKey {
+        sk.sign(|| passphrase.unwrap_or_else(|| "".to_string()))
+            .unwrap()
     }
 
     pub fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>> {
@@ -123,21 +125,26 @@ impl Signer {
 
 #[cfg(test)]
 mod tests {
-    use pgp::{
-        types::{PublicKeyTrait, SecretKeyRepr, SecretKeyTrait},
-        KeyType,
-    };
-    use rsa::{PaddingScheme, PublicKey};
+    use log::info;
+    use pgp::KeyType;
 
     use super::Signer;
 
     #[test]
     fn generate_key() {
+        let _ = simple_logger::init().unwrap();
         let pass = String::from("pass");
-        let plain = String::from("plain secret text");
-        let secret_key = Signer::generate_key(KeyType::Rsa(2048), Some(pass.clone()));
+        let secret_key = Signer::generate_key(KeyType::Rsa(4096), Some(pass.clone()));
         let signed_sk = secret_key.sign(|| pass.clone()).unwrap();
-        let private_armored = signed_sk.to_armored_string(None).unwrap();
+        let private_armored_string = signed_sk.to_armored_string(None).unwrap();
+        info!("Private armored:{}", private_armored_string);
+
+        let parsed_signed_sk =
+            Signer::parse_signed_secret_from_string(private_armored_string.clone()).unwrap();
+        assert_eq!(
+            parsed_signed_sk.to_armored_bytes(None).unwrap(),
+            signed_sk.to_armored_bytes(None).unwrap()
+        );
 
         let test_string_content = "My Test Data".to_owned();
 

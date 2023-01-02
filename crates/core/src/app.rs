@@ -1,6 +1,7 @@
 use std::{process, time::Duration};
 
 use anyhow::{Ok, Result};
+use crypto::signer::Signer;
 use shared::{
     events::{Event, KeyCode},
     state::{ActivePage, State},
@@ -13,10 +14,11 @@ pub struct App {
     state: State,
     rec_event: UnboundedReceiver<Event>,
     event_loop: Option<EventLoop>,
+    signer: Signer,
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(signer: Signer) -> Self {
         // Send tr_state to integrations loop later
         let mut event_loop = EventLoop::new(Duration::from_millis(8));
         Self {
@@ -24,6 +26,7 @@ impl App {
             state: State::default(),
             rec_event: event_loop.rec_event.take().unwrap(),
             event_loop: Some(event_loop),
+            signer,
         }
     }
 
@@ -78,11 +81,5 @@ impl App {
         // Handle state update
         join!(el.run(), self.run_ui());
         process::exit(0);
-    }
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self::new()
     }
 }
