@@ -125,7 +125,7 @@ impl Signer {
 
 #[cfg(test)]
 mod tests {
-    use log::info;
+    use log::{debug, info};
     use pgp::KeyType;
 
     use super::Signer;
@@ -134,7 +134,9 @@ mod tests {
     fn generate_key() {
         let _ = simple_logger::init().unwrap();
         let pass = String::from("pass");
-        let secret_key = Signer::generate_key(KeyType::Rsa(4096), Some(pass.clone()));
+        debug!("Generating key");
+        let secret_key = Signer::generate_key(KeyType::Rsa(2048), Some(pass.clone()));
+        debug!("Key generated");
         let signed_sk = secret_key.sign(|| pass.clone()).unwrap();
         let private_armored_string = signed_sk.to_armored_string(None).unwrap();
         info!("Private armored:{}", private_armored_string);
@@ -153,5 +155,6 @@ mod tests {
         let decrypted = signer.decrypt(&encrypted).unwrap();
 
         assert_eq!(decrypted, test_string_content.as_bytes());
+        assert!(false);
     }
 }

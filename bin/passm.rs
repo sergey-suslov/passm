@@ -23,7 +23,7 @@ async fn main() -> Result<()> {
         Err(_) => {
             let passphrase = shared::console::read_passphrase(true).unwrap();
             println!("Starting key pair generation");
-            let sk = Signer::generate_key(KeyType::Rsa(4096), Some(passphrase.clone()));
+            let sk = Signer::generate_key(KeyType::Rsa(2048), Some(passphrase.clone()));
             println!("New key pair has been created!");
 
             let signed = Signer::sign_key(sk, Some(passphrase));
