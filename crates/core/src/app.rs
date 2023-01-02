@@ -1,7 +1,9 @@
 use std::{path::PathBuf, process, time::Duration};
 
 use anyhow::{Ok, Result};
+use clipboard::{ClipboardContext, ClipboardProvider};
 use crypto::signer::Signer;
+use log::info;
 use shared::{
     events::{Event, KeyCode},
     state::{ActivePage, State},
@@ -12,7 +14,7 @@ use tokio::{
 };
 use ui::{ui::UI, EventLoop};
 
-use crate::files::{read_passwords_from_path, save_to_file};
+use crate::files::{read_password_bytes, read_passwords_from_path, save_to_file};
 
 const TERMINATE_PAGES: [shared::state::ActivePage; 1] = [ActivePage::PasswordsList];
 
@@ -93,6 +95,9 @@ impl App {
                 }
                 KeyCode::Char('a') => {
                     self.state.active_page = ActivePage::CreateNewPasswordName;
+                }
+                KeyCode::Char('\n') => {
+                    self.copy_selected_password_to_clipboard().await?;
                 }
                 _ => {}
             },
@@ -186,6 +191,20 @@ impl App {
     async fn save_password(&self, name: String, text: String) -> Result<()> {
         let encryped = self.signer.encrypt(text.as_bytes())?;
         save_to_file(&encryped, &self.passwords_dir.join(name)).await?;
+        Ok(())
+    }
+
+    async fn copy_selected_password_to_clipboard(&self) -> Result<()> {
+        let pass = self
+            .state
+            .passwords_list
+            .get(self.state.active_password_record)
+            .unwrap();
+        let pass_bytes = read_password_bytes(&self.passwords_dir.join(&pass.name)).await?;
+        let decrypted = self.signer.decrypt(&pass_bytes)?;
+        let mut ctx = ClipboardContext::new().unwrap();
+        let plain = String::from_utf8(decrypted).unwrap();
+        ctx.set_contents(plain).unwrap();
         Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use std::{fs::FileType, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
 use shared::password::Password;
@@ -7,6 +7,11 @@ use tokio::fs;
 pub async fn save_to_file(content: &[u8], path: &PathBuf) -> Result<()> {
     fs::write(path, content).await?;
     Ok(())
+}
+
+pub async fn read_password_bytes(path: &PathBuf) -> Result<Vec<u8>> {
+    let content = fs::read(path).await?;
+    Ok(content)
 }
 
 pub async fn read_passwords_from_path(path: &PathBuf) -> Result<Vec<Password>> {
