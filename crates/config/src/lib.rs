@@ -1,7 +1,4 @@
-pub mod events;
-pub mod console;
-pub mod state;
-pub mod password;
+pub mod config;
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,5 @@
 [package]
-name = "shared"
+name = "config"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.66"
+toml = "0.5.10"
+serde = { version = "1.0", features = ["derive"] }
+

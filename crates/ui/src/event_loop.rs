@@ -9,35 +9,34 @@ use crossterm::event::{
     },
     KeyModifiers,
 };
-use log::warn;
+use log::{info, warn};
 use shared::events::{Event, KeyCode};
-use tokio::sync::broadcast;
-use tokio::{
-    spawn,
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-    time::sleep,
-};
+use tokio::sync::broadcast::{self, Sender};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 pub struct EventLoop {
     tick_rate: Duration,
     tr_event: UnboundedSender<Event>,
+    pub tr_terminate: Sender<()>,
     pub rec_event: Option<UnboundedReceiver<Event>>,
 }
 
 impl EventLoop {
     pub fn new(tick_rate: Duration) -> Self {
         let (tr_event, rec_event) = unbounded_channel::<Event>();
+        let (tr_terminate, _) = broadcast::channel::<()>(1);
         Self {
             tick_rate,
             tr_event,
             rec_event: Some(rec_event),
+            tr_terminate,
         }
     }
 
     pub async fn run(&self) {
         let tr_event = self.tr_event.clone();
-        let (tr_terminate, mut rec_terminate) = broadcast::channel::<()>(1);
         let tick_rate = self.tick_rate;
+        let mut rec_terminate = self.tr_terminate.subscribe();
         let mut reader = EventStream::new();
 
         loop {
@@ -94,13 +93,10 @@ impl EventLoop {
                            _ => KeyCode::Null,
                        };
                        tr_event.send(Event::KeyEvent(key)).unwrap_or_else(|_| warn!("Unable to send {:?} event", key));
-                       if key.is_terminate(){
-                           break;
-                       }
                    }
                }
             }
         }
-        println!("Event Loop terminated");
+        info!("Event Loop terminated");
     }
 }
