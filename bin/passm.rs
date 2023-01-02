@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
     });
     let signer = Signer::new(ssk, Some(passphrase));
 
-    let mut app = App::new(signer);
+    let mut app = App::new(signer, namespace_configuration.passwords_dir);
     app.run().await;
 
     Ok(())

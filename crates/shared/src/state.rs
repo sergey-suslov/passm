@@ -1,6 +1,6 @@
 use crate::password::Password;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ActivePage {
     PasswordsList,
     CreateNewPasswordName,

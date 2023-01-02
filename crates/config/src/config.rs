@@ -7,6 +7,7 @@ use std::{
 };
 
 const DEFAULT_BASE_PATH: &str = "./.passm";
+const PASSWORDS_DIR_NAME: &str = "passwds";
 const DEFAULT_NAMESPACE_NAME: &str = "default";
 const DEFAULT_PRIVATE_KEY_NAME: &str = ".private_1";
 const MAIN_CONFIG_NAME: &str = ".config.toml";
@@ -14,6 +15,7 @@ const MAIN_CONFIG_NAME: &str = ".config.toml";
 #[derive(Debug, Deserialize, Serialize)]
 pub struct NamespaceConfig {
     pub private_key_path: String,
+    pub passwords_dir: PathBuf,
     pub name: String,
 }
 
@@ -70,6 +72,7 @@ impl Configuration {
             }
             _ => {
                 let namespace_config = NamespaceConfig {
+                    passwords_dir: base_path.join(PASSWORDS_DIR_NAME),
                     private_key_path: base_path
                         .join(DEFAULT_PRIVATE_KEY_NAME)
                         .to_str()
@@ -77,6 +80,7 @@ impl Configuration {
                         .to_string(),
                     name: DEFAULT_NAMESPACE_NAME.to_string(),
                 };
+                fs::create_dir_all(&namespace_config.passwords_dir).unwrap();
                 fs::write(
                     namespace_config_path,
                     toml::to_string(&namespace_config).unwrap(),
