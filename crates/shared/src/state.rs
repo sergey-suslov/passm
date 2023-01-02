@@ -3,6 +3,8 @@ use crate::password::Password;
 #[derive(Clone, Copy)]
 pub enum ActivePage {
     PasswordsList,
+    CreateNewPasswordName,
+    CreateNewPasswordBody,
 }
 
 #[derive(Clone)]
@@ -10,6 +12,8 @@ pub struct State {
     pub active_page: ActivePage,
     pub passwords_list: Vec<Password>,
     pub active_password_record: usize,
+    pub password_name_input: Option<String>,
+    pub password_input: Option<String>,
 }
 
 impl Default for State {
@@ -25,6 +29,8 @@ impl Default for State {
                 },
             ],
             active_password_record: 0,
+            password_input: None,
+            password_name_input: None,
         }
     }
 }

@@ -70,6 +70,68 @@ impl App {
                     }
                     self.state.active_password_record -= 1;
                 }
+                KeyCode::Char('a') => {
+                    self.state.active_page = ActivePage::CreateNewPasswordName;
+                }
+                _ => {}
+            },
+            ActivePage::CreateNewPasswordName => match input {
+                KeyCode::Char('\n') => {
+                    self.state.active_page = ActivePage::CreateNewPasswordBody;
+                }
+                KeyCode::Ctrl('c') => {
+                    self.state.password_name_input = None;
+                    self.state.password_input = None;
+                    self.state.active_page = ActivePage::PasswordsList;
+                }
+                KeyCode::Backspace => {
+                    let mut curr = self
+                        .state
+                        .password_name_input
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.pop();
+                    self.state.password_name_input = Some(curr);
+                }
+                KeyCode::Char(char) => {
+                    let mut curr = self
+                        .state
+                        .password_name_input
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.push(char);
+                    self.state.password_name_input = Some(curr);
+                }
+                _ => {}
+            },
+            ActivePage::CreateNewPasswordBody => match input {
+                KeyCode::Ctrl('c') => {
+                    self.state.password_name_input = None;
+                    self.state.password_input = None;
+                    self.state.active_page = ActivePage::PasswordsList;
+                }
+                KeyCode::Ctrl('d') => {
+                    // TODO save password
+                    self.state.active_page = ActivePage::PasswordsList;
+                }
+                KeyCode::Char(char) => {
+                    let mut curr = self
+                        .state
+                        .password_input
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.push(char);
+                    self.state.password_input = Some(curr);
+                }
+                KeyCode::Backspace => {
+                    let mut curr = self
+                        .state
+                        .password_input
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.pop();
+                    self.state.password_input = Some(curr);
+                }
                 _ => {}
             },
         }

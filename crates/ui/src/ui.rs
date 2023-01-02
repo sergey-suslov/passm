@@ -12,7 +12,8 @@ use tui::{
     Frame, Terminal,
 };
 
-use crate::{components::get_bordered_block, widgets::PasswordsList};
+use crate::widgets::PasswordsList;
+use crate::widgets::{HelpTab, LabeledInput};
 
 pub struct UI {
     terminal: Terminal<CrosstermBackend<std::io::Stdout>>,
@@ -65,11 +66,72 @@ impl UI {
             let size = f.size();
             match state.active_page {
                 ActivePage::PasswordsList => {
-                    Self::render_passwords_list(f, size, state.active_password_record, &state.passwords_list);
+                    Self::render_passwords_list(
+                        f,
+                        size,
+                        state.active_password_record,
+                        &state.passwords_list,
+                    );
+                }
+                ActivePage::CreateNewPasswordName => {
+                    Self::render_create_password_name(
+                        f,
+                        size,
+                        state.active_password_record,
+                        state.password_name_input.unwrap_or_else(|| "".to_owned()),
+                    );
+                }
+                ActivePage::CreateNewPasswordBody => {
+                    Self::render_create_password_body(
+                        f,
+                        size,
+                        state.active_password_record,
+                        state.password_input.unwrap_or_else(|| "".to_owned()),
+                    );
                 }
             }
         })?;
         Ok(())
+    }
+
+    fn render_create_password_name<B: Backend>(
+        f: &mut Frame<B>,
+        size: Rect,
+        selected: usize,
+        password_name_input: String,
+    ) {
+        let mut root_layout = Self::get_root_layout(size);
+
+        // Rendering active tab
+        let body = root_layout.get_mut(0).unwrap();
+        f.render_widget(
+            LabeledInput::new(password_name_input, "Password Name".to_owned()),
+            *body,
+        );
+
+        // Render help tab
+        let help_tab = root_layout.get_mut(1).unwrap();
+        f.render_widget(HelpTab::new(ActivePage::CreateNewPasswordName), *help_tab);
+    }
+
+    fn render_create_password_body<B: Backend>(
+        f: &mut Frame<B>,
+        size: Rect,
+        selected: usize,
+        password_input: String,
+    ) {
+        let mut root_layout = Self::get_root_layout(size);
+
+        // Rendering active tab
+        let body = root_layout.get_mut(0).unwrap();
+        f.render_widget(
+            LabeledInput::new(password_input, "Password".to_owned()),
+            *body,
+        );
+
+        // Render help tab
+        let help_tab = root_layout.get_mut(1).unwrap();
+        f.render_widget(HelpTab::new(ActivePage::CreateNewPasswordBody), *help_tab);
     }
 
     fn render_passwords_list<B: Backend>(
@@ -79,21 +141,21 @@ impl UI {
         passwords_list: &Vec<Password>,
     ) {
         let mut root_layout = Self::get_root_layout(size);
-        let fps = root_layout.get_mut(0).unwrap();
-        let mut fps_block = get_bordered_block();
-        fps_block = fps_block.title(format!("Tick: {}", 1));
-        f.render_widget(fps_block, *fps);
 
         // Rendering active tab
-        let body = root_layout.get_mut(1).unwrap();
+        let body = root_layout.get_mut(0).unwrap();
         f.render_widget(PasswordsList::new(passwords_list, selected), *body);
+
+        // Render help tab
+        let help_tab = root_layout.get_mut(1).unwrap();
+        f.render_widget(HelpTab::new(ActivePage::PasswordsList), *help_tab);
     }
 
     fn get_root_layout(size: Rect) -> Vec<Rect> {
         Layout::default()
             .direction(tui::layout::Direction::Vertical)
             .margin(0)
-            .constraints([Constraint::Max(3), Constraint::Length(1)].as_ref())
+            .constraints([Constraint::Min(10), Constraint::Length(3)].as_ref())
             .split(size)
     }
 }

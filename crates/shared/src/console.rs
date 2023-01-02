@@ -6,7 +6,6 @@ pub fn read_passphrase(with_confirmation: bool) -> Result<String> {
     println!("Enter your passphrase:");
     let mut buffer = String::new();
     stdin().read_line(&mut buffer).unwrap();
-    println!();
 
     if with_confirmation {
         println!("Enter your passphrase again:");
