@@ -12,7 +12,7 @@ use tokio::{
 };
 use ui::{ui::UI, EventLoop};
 
-use crate::files::save_to_file;
+use crate::files::{read_passwords_from_path, save_to_file};
 
 const TERMINATE_PAGES: [shared::state::ActivePage; 1] = [ActivePage::PasswordsList];
 
@@ -24,6 +24,7 @@ pub struct App {
     event_loop: Option<EventLoop>,
     signer: Signer,
     passwords_dir: PathBuf,
+    should_refresh_passwords: bool,
 }
 
 impl App {
@@ -31,6 +32,7 @@ impl App {
         // Send tr_state to integrations loop later
         let mut event_loop = EventLoop::new(Duration::from_millis(8));
         Self {
+            should_refresh_passwords: true,
             ui: Some(UI::new()),
             state: State::default(),
             rec_event: event_loop.rec_event.take().unwrap(),
@@ -48,6 +50,11 @@ impl App {
             if let Some(event) = self.rec_event.recv().await {
                 match event {
                     Event::Tick => {
+                        if self.should_refresh_passwords {
+                            let passwords = read_passwords_from_path(&self.passwords_dir).await?;
+                            self.state.passwords_list = passwords;
+                            self.should_refresh_passwords = false;
+                        }
                         ui.draw(self.state.clone()).await.unwrap();
                     }
                     Event::KeyEvent(key_code) => {
@@ -142,6 +149,7 @@ impl App {
                         .take()
                         .unwrap_or_else(|| "".to_string());
                     self.save_password(pass_name, pass).await?;
+                    self.should_refresh_passwords = true;
                     self.state.active_page = ActivePage::PasswordsList;
                 }
                 KeyCode::Char(char) => {
