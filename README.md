@@ -1,7 +1,7 @@
 # passm
 
 <div align="center">
-<img src="assets/logo_wide.svg" alt="refinery Logo">
+<img src="assets/logo_wide.svg" width="500px" alt="refinery Logo">
 <p>
 Self hosted password management simplified
 </p>
@@ -14,5 +14,5 @@ Passm strives to make self hosted password management as easy as possible.
 
 - [x] PGP key generation
 - [x] Create/Edit/Delete you passwords
-- [x] Export you keys ecrypted with you password
-- [x] Sync passwords with a storage of you choise
+- [ ] Export you keys ecrypted with you password
+- [ ] Sync passwords with a storage of you choise
