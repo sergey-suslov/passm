@@ -9,6 +9,11 @@ pub async fn save_to_file(content: &[u8], path: &PathBuf) -> Result<()> {
     Ok(())
 }
 
+pub async fn delete_password(path: &PathBuf) -> Result<()> {
+    fs::remove_file(path).await?;
+    Ok(())
+}
+
 pub async fn read_password_bytes(path: &PathBuf) -> Result<Vec<u8>> {
     let content = fs::read(path).await?;
     Ok(content)

@@ -80,7 +80,7 @@ impl UI {
                     );
                 }
                 ActivePage::CreateNewPasswordName => {
-                    Self::render_create_password(
+                    Self::render_create_edit_password(
                         f,
                         size,
                         state.password_name_input.unwrap_or_else(|| "".to_owned()),
@@ -89,7 +89,25 @@ impl UI {
                     );
                 }
                 ActivePage::CreateNewPasswordBody => {
-                    Self::render_create_password(
+                    Self::render_create_edit_password(
+                        f,
+                        size,
+                        state.password_name_input.unwrap_or_else(|| "".to_owned()),
+                        state.password_input.unwrap_or_else(|| "".to_owned()),
+                        ActivePasswordSection::Body,
+                    );
+                }
+                ActivePage::EditPasswordName => {
+                    Self::render_create_edit_password(
+                        f,
+                        size,
+                        state.password_name_input.unwrap_or_else(|| "".to_owned()),
+                        state.password_input.unwrap_or_else(|| "".to_owned()),
+                        ActivePasswordSection::Name,
+                    );
+                }
+                ActivePage::EditPasswordBody => {
+                    Self::render_create_edit_password(
                         f,
                         size,
                         state.password_name_input.unwrap_or_else(|| "".to_owned()),
@@ -102,7 +120,7 @@ impl UI {
         Ok(())
     }
 
-    fn render_create_password<B: Backend>(
+    fn render_create_edit_password<B: Backend>(
         f: &mut Frame<B>,
         size: Rect,
         password_name_input: String,

@@ -1,12 +1,9 @@
 use shared::password::Password;
 use tui::{
-    layout::{Constraint, Layout},
+    layout::Constraint,
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{
-        Block, BorderType, Borders, Cell, List, ListItem, ListState, Row, StatefulWidget, Table,
-        TableState, Widget,
-    },
+    text::Span,
+    widgets::{Block, BorderType, Borders, Cell, Row, Table, TableState, Widget},
 };
 
 pub struct PasswordsList<'b> {

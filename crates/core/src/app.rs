@@ -3,7 +3,6 @@ use std::{path::PathBuf, process, time::Duration};
 use anyhow::{Ok, Result};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use crypto::signer::Signer;
-use log::info;
 use shared::{
     events::{Event, KeyCode},
     state::{ActivePage, State},
@@ -14,7 +13,7 @@ use tokio::{
 };
 use ui::{ui::UI, EventLoop};
 
-use crate::files::{read_password_bytes, read_passwords_from_path, save_to_file};
+use crate::files::{delete_password, read_password_bytes, read_passwords_from_path, save_to_file};
 
 const TERMINATE_PAGES: [shared::state::ActivePage; 1] = [ActivePage::PasswordsList];
 
@@ -95,6 +94,13 @@ impl App {
                 }
                 KeyCode::Char('a') => {
                     self.state.active_page = ActivePage::CreateNewPasswordName;
+                }
+                KeyCode::Char('e') => {
+                    self.fill_selected_password_for_editing().await?;
+                    self.state.active_page = ActivePage::EditPasswordName;
+                }
+                KeyCode::Char('d') => {
+                    self.delete_selected_password().await?;
                 }
                 KeyCode::Char('\n') => {
                     self.copy_selected_password_to_clipboard().await?;
@@ -177,6 +183,82 @@ impl App {
                 }
                 _ => {}
             },
+            ActivePage::EditPasswordName => match input {
+                KeyCode::Char('\n') => {
+                    self.state.active_page = ActivePage::EditPasswordBody;
+                }
+                KeyCode::Tab => {
+                    self.state.active_page = ActivePage::EditPasswordBody;
+                }
+                KeyCode::Ctrl('c') => {
+                    self.state.password_name_input = None;
+                    self.state.password_input = None;
+                    self.state.active_page = ActivePage::PasswordsList;
+                }
+                KeyCode::Backspace => {
+                    let mut curr = self
+                        .state
+                        .password_name_input
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.pop();
+                    self.state.password_name_input = Some(curr);
+                }
+                KeyCode::Char(char) => {
+                    let mut curr = self
+                        .state
+                        .password_name_input
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.push(char);
+                    self.state.password_name_input = Some(curr);
+                }
+                _ => {}
+            },
+            ActivePage::EditPasswordBody => match input {
+                KeyCode::BackTab => {
+                    self.state.active_page = ActivePage::EditPasswordName;
+                }
+                KeyCode::Ctrl('c') => {
+                    self.state.password_name_input = None;
+                    self.state.password_input = None;
+                    self.state.active_page = ActivePage::PasswordsList;
+                }
+                KeyCode::Ctrl('d') => {
+                    let pass_name = self
+                        .state
+                        .password_name_input
+                        .take()
+                        .unwrap_or_else(|| "".to_string());
+                    let pass = self
+                        .state
+                        .password_input
+                        .take()
+                        .unwrap_or_else(|| "".to_string());
+                    self.save_password(pass_name, pass).await?;
+                    self.should_refresh_passwords = true;
+                    self.state.active_page = ActivePage::PasswordsList;
+                }
+                KeyCode::Char(char) => {
+                    let mut curr = self
+                        .state
+                        .password_input
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.push(char);
+                    self.state.password_input = Some(curr);
+                }
+                KeyCode::Backspace => {
+                    let mut curr = self
+                        .state
+                        .password_input
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.pop();
+                    self.state.password_input = Some(curr);
+                }
+                _ => {}
+            },
         }
         Ok(())
     }
@@ -184,13 +266,40 @@ impl App {
     pub async fn run(&mut self) {
         let el = self.event_loop.take().unwrap();
         // Handle state update
-        join!(el.run(), self.run_ui());
+        let _ = join!(el.run(), self.run_ui());
         process::exit(0);
     }
 
     async fn save_password(&self, name: String, text: String) -> Result<()> {
         let encryped = self.signer.encrypt(text.as_bytes())?;
         save_to_file(&encryped, &self.passwords_dir.join(name)).await?;
+        Ok(())
+    }
+
+    async fn fill_selected_password_for_editing(&mut self) -> Result<()> {
+        let pass = self
+            .state
+            .passwords_list
+            .get(self.state.active_password_record)
+            .unwrap();
+        let pass_bytes = read_password_bytes(&self.passwords_dir.join(&pass.name)).await?;
+        let decrypted = self.signer.decrypt(&pass_bytes)?;
+        let plain = String::from_utf8(decrypted).unwrap();
+        self.state.password_name_input = Some(pass.name.clone());
+        self.state.password_input = Some(plain);
+        Ok(())
+    }
+
+    async fn delete_selected_password(&mut self) -> Result<()> {
+        let pass = self
+            .state
+            .passwords_list
+            .get(self.state.active_password_record)
+            .unwrap();
+        delete_password(&self.passwords_dir.join(&pass.name)).await?;
+        self.state
+            .passwords_list
+            .remove(self.state.active_password_record);
         Ok(())
     }
 

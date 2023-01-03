@@ -1,10 +1,8 @@
 use anyhow::{Ok, Result};
-use pgp::composed::{
-    KeyType, SecretKey, SecretKeyParamsBuilder, SignedSecretKey, SubkeyParamsBuilder,
-};
-use pgp::crypto::{HashAlgorithm, PublicKeyAlgorithm, SymmetricKeyAlgorithm};
-use pgp::packet::{self, SignatureConfig, SignatureConfigBuilder};
-use pgp::types::{CompressionAlgorithm, KeyTrait, SecretKeyRepr, SecretKeyTrait};
+use pgp::composed::{KeyType, SecretKey, SecretKeyParamsBuilder, SignedSecretKey};
+use pgp::crypto::{HashAlgorithm, SymmetricKeyAlgorithm};
+
+use pgp::types::{CompressionAlgorithm, SecretKeyRepr, SecretKeyTrait};
 use pgp::Deserializable;
 use rand::thread_rng;
 use rsa::{PaddingScheme, PublicKey};
@@ -142,7 +140,7 @@ mod tests {
         info!("Private armored:{}", private_armored_string);
 
         let parsed_signed_sk =
-            Signer::parse_signed_secret_from_string(private_armored_string.clone()).unwrap();
+            Signer::parse_signed_secret_from_string(private_armored_string).unwrap();
         assert_eq!(
             parsed_signed_sk.to_armored_bytes(None).unwrap(),
             signed_sk.to_armored_bytes(None).unwrap()
@@ -155,6 +153,5 @@ mod tests {
         let decrypted = signer.decrypt(&encrypted).unwrap();
 
         assert_eq!(decrypted, test_string_content.as_bytes());
-        assert!(false);
     }
 }

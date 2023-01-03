@@ -26,7 +26,7 @@ impl Widget for LabeledInput {
         let block = Paragraph::new(self.text).block(
             get_bordered_block()
                 .title(self.label)
-                .style(self.block_style.unwrap_or_else(|| Style::default())),
+                .style(self.block_style.unwrap_or_default()),
         );
         tui::widgets::Widget::render(block, area, buf);
     }
