@@ -92,6 +92,10 @@ impl App {
                     }
                     self.state.active_password_record -= 1;
                 }
+                KeyCode::Char('/') => {
+                    self.state.passwords_list_search = self.state.passwords_list.clone();
+                    self.state.active_page = ActivePage::SearchPasswordsListName;
+                }
                 KeyCode::Char('a') => {
                     self.state.active_page = ActivePage::CreateNewPasswordName;
                 }
@@ -259,6 +263,75 @@ impl App {
                 }
                 _ => {}
             },
+            ActivePage::SearchPasswordsList => match input {
+                KeyCode::Down => {
+                    if self.state.active_password_record_search
+                        >= self.state.passwords_list_search.len() - 1
+                    {
+                        return Ok(());
+                    }
+                    self.state.active_password_record_search += 1;
+                }
+                KeyCode::Up => {
+                    if self.state.active_password_record_search == 0 {
+                        return Ok(());
+                    }
+                    self.state.active_password_record_search -= 1;
+                }
+                KeyCode::Esc | KeyCode::Char('c') | KeyCode::Char('q') => {
+                    self.state.passwords_list_search_term = None;
+                    self.state.passwords_list_search = vec![];
+                    self.state.active_page = ActivePage::PasswordsList;
+                }
+                KeyCode::Tab | KeyCode::BackTab => {
+                    self.state.active_page = ActivePage::SearchPasswordsListName;
+                }
+                KeyCode::Char('a') => {
+                    self.state.active_page = ActivePage::CreateNewPasswordName;
+                }
+                KeyCode::Char('e') => {
+                    self.fill_selected_password_for_editing().await?;
+                    self.state.active_page = ActivePage::EditPasswordName;
+                }
+                KeyCode::Char('d') => {
+                    self.delete_selected_password_search().await?;
+                }
+                KeyCode::Char('\n') => {
+                    self.copy_selected_password_to_clipboard_search().await?;
+                }
+                _ => {}
+            },
+            ActivePage::SearchPasswordsListName => match input {
+                KeyCode::Char('\n') | KeyCode::Tab | KeyCode::BackTab => {
+                    self.state.active_page = ActivePage::SearchPasswordsList;
+                }
+                KeyCode::Ctrl('c') => {
+                    self.state.passwords_list_search_term = None;
+                    self.state.passwords_list_search = vec![];
+                    self.state.active_page = ActivePage::PasswordsList;
+                }
+                KeyCode::Backspace => {
+                    let mut curr = self
+                        .state
+                        .passwords_list_search_term
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.pop();
+                    self.state.passwords_list_search_term = Some(curr);
+                    self.filter_passwords_list()?;
+                }
+                KeyCode::Char(char) => {
+                    let mut curr = self
+                        .state
+                        .passwords_list_search_term
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.push(char);
+                    self.state.passwords_list_search_term = Some(curr);
+                    self.filter_passwords_list()?;
+                }
+                _ => {}
+            },
         }
         Ok(())
     }
@@ -268,6 +341,32 @@ impl App {
         // Handle state update
         let _ = join!(el.run(), self.run_ui());
         process::exit(0);
+    }
+
+    fn filter_passwords_list(&mut self) -> Result<()> {
+        let term = &self
+            .state
+            .passwords_list_search_term
+            .clone()
+            .unwrap_or_else(|| "".to_owned())
+            .to_lowercase();
+        self.state.passwords_list_search = self
+            .state
+            .passwords_list
+            .clone()
+            .iter()
+            .filter_map(|p| {
+                if !term.is_empty() && !p.name.to_lowercase().contains(term) {
+                    return None;
+                };
+                Some(p.clone())
+            })
+            .collect();
+        let (len, _) = self.state.passwords_list_search.len().overflowing_sub(1);
+        if self.state.active_password_record_search > len {
+            self.state.active_password_record_search = len;
+        }
+        Ok(())
     }
 
     async fn save_password(&self, name: String, text: String) -> Result<()> {
@@ -290,6 +389,19 @@ impl App {
         Ok(())
     }
 
+    async fn delete_selected_password_search(&mut self) -> Result<()> {
+        let pass = self
+            .state
+            .passwords_list_search
+            .get(self.state.active_password_record_search)
+            .unwrap();
+        delete_password(&self.passwords_dir.join(&pass.name)).await?;
+        self.state
+            .passwords_list_search
+            .remove(self.state.active_password_record_search);
+        Ok(())
+    }
+
     async fn delete_selected_password(&mut self) -> Result<()> {
         let pass = self
             .state
@@ -300,6 +412,20 @@ impl App {
         self.state
             .passwords_list
             .remove(self.state.active_password_record);
+        Ok(())
+    }
+
+    async fn copy_selected_password_to_clipboard_search(&self) -> Result<()> {
+        let pass = self
+            .state
+            .passwords_list_search
+            .get(self.state.active_password_record_search)
+            .unwrap();
+        let pass_bytes = read_password_bytes(&self.passwords_dir.join(&pass.name)).await?;
+        let decrypted = self.signer.decrypt(&pass_bytes)?;
+        let mut ctx = ClipboardContext::new().unwrap();
+        let plain = String::from_utf8(decrypted).unwrap();
+        ctx.set_contents(plain).unwrap();
         Ok(())
     }
 

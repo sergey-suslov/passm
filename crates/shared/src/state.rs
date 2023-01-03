@@ -7,6 +7,8 @@ pub enum ActivePage {
     CreateNewPasswordBody,
     EditPasswordName,
     EditPasswordBody,
+    SearchPasswordsList,
+    SearchPasswordsListName,
 }
 
 #[derive(Clone)]
@@ -14,6 +16,11 @@ pub struct State {
     pub active_page: ActivePage,
     pub passwords_list: Vec<Password>,
     pub active_password_record: usize,
+
+    pub passwords_list_search_term: Option<String>,
+    pub passwords_list_search: Vec<Password>,
+    pub active_password_record_search: usize,
+
     pub password_name_input: Option<String>,
     pub password_input: Option<String>,
 }
@@ -24,6 +31,9 @@ impl Default for State {
             active_page: ActivePage::PasswordsList,
             passwords_list: vec![],
             active_password_record: 0,
+            passwords_list_search_term: None,
+            passwords_list_search: vec![],
+            active_password_record_search: 0,
             password_input: None,
             password_name_input: None,
         }

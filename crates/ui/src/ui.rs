@@ -21,6 +21,11 @@ enum ActivePasswordSection {
     Body,
 }
 
+enum ActiveSearchPasswordListSection {
+    Name,
+    Body,
+}
+
 pub struct UI {
     terminal: Terminal<CrosstermBackend<std::io::Stdout>>,
 }
@@ -115,6 +120,30 @@ impl UI {
                         ActivePasswordSection::Body,
                     );
                 }
+                ActivePage::SearchPasswordsListName => {
+                    Self::render_passwords_list_search(
+                        f,
+                        size,
+                        state
+                            .passwords_list_search_term
+                            .unwrap_or_else(|| "".to_owned()),
+                        state.active_password_record_search,
+                        &state.passwords_list_search,
+                        ActiveSearchPasswordListSection::Name,
+                    );
+                }
+                ActivePage::SearchPasswordsList => {
+                    Self::render_passwords_list_search(
+                        f,
+                        size,
+                        state
+                            .passwords_list_search_term
+                            .unwrap_or_else(|| "".to_owned()),
+                        state.active_password_record_search,
+                        &state.passwords_list_search,
+                        ActiveSearchPasswordListSection::Body,
+                    );
+                }
             }
         })?;
         Ok(())
@@ -170,6 +199,53 @@ impl UI {
         );
     }
 
+    fn render_passwords_list_search<B: Backend>(
+        f: &mut Frame<B>,
+        size: Rect,
+        search_term: String,
+        selected: usize,
+        passwords_list: &Vec<Password>,
+        active_section: ActiveSearchPasswordListSection,
+    ) {
+        let mut root_layout = Self::get_password_list_search_layout(size);
+
+        // Rendering active tab
+        let search_frame = root_layout.get_mut(0).unwrap();
+        f.render_widget(
+            LabeledInput::new(
+                search_term,
+                "Search".to_owned(),
+                match active_section {
+                    ActiveSearchPasswordListSection::Name => None,
+                    ActiveSearchPasswordListSection::Body => {
+                        Some(Style::default().fg(tui::style::Color::DarkGray))
+                    }
+                },
+            ),
+            *search_frame,
+        );
+
+        // Rendering active tab
+        let body = root_layout.get_mut(1).unwrap();
+        f.render_widget(
+            PasswordsList::new(
+                passwords_list,
+                selected,
+                match active_section {
+                    ActiveSearchPasswordListSection::Body => None,
+                    ActiveSearchPasswordListSection::Name => {
+                        Some(Style::default().fg(tui::style::Color::DarkGray))
+                    }
+                },
+            ),
+            *body,
+        );
+
+        // Render help tab
+        let help_tab = root_layout.get_mut(2).unwrap();
+        f.render_widget(HelpTab::new(ActivePage::PasswordsList), *help_tab);
+    }
+
     fn render_passwords_list<B: Backend>(
         f: &mut Frame<B>,
         size: Rect,
@@ -180,7 +256,7 @@ impl UI {
 
         // Rendering active tab
         let body = root_layout.get_mut(0).unwrap();
-        f.render_widget(PasswordsList::new(passwords_list, selected), *body);
+        f.render_widget(PasswordsList::new(passwords_list, selected, None), *body);
 
         // Render help tab
         let help_tab = root_layout.get_mut(1).unwrap();
@@ -188,6 +264,20 @@ impl UI {
     }
 
     fn get_passwords_layout(size: Rect) -> Vec<Rect> {
+        Layout::default()
+            .direction(tui::layout::Direction::Vertical)
+            .margin(0)
+            .constraints(
+                [
+                    Constraint::Length(3),
+                    Constraint::Min(10),
+                    Constraint::Length(3),
+                ]
+                .as_ref(),
+            )
+            .split(size)
+    }
+    fn get_password_list_search_layout(size: Rect) -> Vec<Rect> {
         Layout::default()
             .direction(tui::layout::Direction::Vertical)
             .margin(0)

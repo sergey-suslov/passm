@@ -3,19 +3,27 @@ use tui::{
     layout::Constraint,
     style::{Color, Modifier, Style},
     text::Span,
-    widgets::{Block, BorderType, Borders, Cell, Row, Table, TableState, Widget},
+    widgets::{Cell, Row, Table, TableState, Widget},
 };
+
+use crate::components::get_bordered_block;
 
 pub struct PasswordsList<'b> {
     passwords_list: &'b Vec<Password>,
     selected: usize,
+    block_style: Option<Style>,
 }
 
 impl<'b> PasswordsList<'b> {
-    pub fn new(passwords_list: &'b Vec<Password>, selected: usize) -> Self {
+    pub fn new(
+        passwords_list: &'b Vec<Password>,
+        selected: usize,
+        block_style: Option<Style>,
+    ) -> Self {
         Self {
             passwords_list,
             selected,
+            block_style,
         }
     }
 }
@@ -34,11 +42,9 @@ impl<'b> Widget for PasswordsList<'b> {
                 Style::default().add_modifier(Modifier::BOLD),
             ))]))
             .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .style(Style::default().fg(Color::White))
+                get_bordered_block()
                     .title("Passwords")
-                    .border_type(BorderType::Plain),
+                    .style(self.block_style.unwrap_or_default()),
             )
             .widths(&[Constraint::Percentage(30), Constraint::Percentage(20)])
             .highlight_style(Style::default().bg(Color::White).fg(Color::Black))
