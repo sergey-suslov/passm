@@ -1,9 +1,18 @@
 # passm
 
-Passm allows its user to manage passwords with pass util, but provides syncronisation capabilities for saved passwords.
+<div align="center">
+<img src="assets/logo_wide.svg" alt="refinery Logo">
+<p>
+Self hosted password management simplified
+</p>
+</div>
+<br/>
 
-# Features
+Passm strives to make self hosted password management as easy as possible.
 
-- [] Create and view passwords
-- [] Edit passwords
-- [] Backup passwords
+## Features
+
+- [x] PGP key generation
+- [x] Create/Edit/Delete you passwords
+- [x] Export you keys ecrypted with you password
+- [x] Sync passwords with a storage of you choise
