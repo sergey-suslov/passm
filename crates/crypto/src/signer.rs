@@ -140,7 +140,7 @@ mod tests {
         info!("Private armored:{}", private_armored_string);
 
         let parsed_signed_sk =
-            Signer::parse_signed_secret_from_string(private_armored_string.clone()).unwrap();
+            Signer::parse_signed_secret_from_string(private_armored_string).unwrap();
         assert_eq!(
             parsed_signed_sk.to_armored_bytes(None).unwrap(),
             signed_sk.to_armored_bytes(None).unwrap()
@@ -153,6 +153,5 @@ mod tests {
         let decrypted = signer.decrypt(&encrypted).unwrap();
 
         assert_eq!(decrypted, test_string_content.as_bytes());
-        assert!(false);
     }
 }

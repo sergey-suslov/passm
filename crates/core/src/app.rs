@@ -3,7 +3,6 @@ use std::{path::PathBuf, process, time::Duration};
 use anyhow::{Ok, Result};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use crypto::signer::Signer;
-use log::info;
 use shared::{
     events::{Event, KeyCode},
     state::{ActivePage, State},
@@ -14,7 +13,7 @@ use tokio::{
 };
 use ui::{ui::UI, EventLoop};
 
-use crate::files::{read_password_bytes, read_passwords_from_path, save_to_file};
+use crate::files::{delete_password, read_password_bytes, read_passwords_from_path, save_to_file};
 
 const TERMINATE_PAGES: [shared::state::ActivePage; 1] = [ActivePage::PasswordsList];
 
@@ -99,6 +98,9 @@ impl App {
                 KeyCode::Char('e') => {
                     self.fill_selected_password_for_editing().await?;
                     self.state.active_page = ActivePage::EditPasswordName;
+                }
+                KeyCode::Char('d') => {
+                    self.delete_selected_password().await?;
                 }
                 KeyCode::Char('\n') => {
                     self.copy_selected_password_to_clipboard().await?;
@@ -264,7 +266,7 @@ impl App {
     pub async fn run(&mut self) {
         let el = self.event_loop.take().unwrap();
         // Handle state update
-        join!(el.run(), self.run_ui());
+        let _ = join!(el.run(), self.run_ui());
         process::exit(0);
     }
 
@@ -285,6 +287,19 @@ impl App {
         let plain = String::from_utf8(decrypted).unwrap();
         self.state.password_name_input = Some(pass.name.clone());
         self.state.password_input = Some(plain);
+        Ok(())
+    }
+
+    async fn delete_selected_password(&mut self) -> Result<()> {
+        let pass = self
+            .state
+            .passwords_list
+            .get(self.state.active_password_record)
+            .unwrap();
+        delete_password(&self.passwords_dir.join(&pass.name)).await?;
+        self.state
+            .passwords_list
+            .remove(self.state.active_password_record);
         Ok(())
     }
 
