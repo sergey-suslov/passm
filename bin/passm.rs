@@ -13,6 +13,8 @@ async fn main() -> Result<()> {
         .init()
         .unwrap();
     let namespace_configuration = Configuration::init().unwrap();
+
+    // Init signed secret key
     let ssk = match fs::metadata(namespace_configuration.private_key_path.clone()) {
         Ok(_) => {
             let file =

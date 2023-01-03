@@ -5,6 +5,8 @@ pub enum ActivePage {
     PasswordsList,
     CreateNewPasswordName,
     CreateNewPasswordBody,
+    EditPasswordName,
+    EditPasswordBody,
 }
 
 #[derive(Clone)]
@@ -20,14 +22,7 @@ impl Default for State {
     fn default() -> Self {
         Self {
             active_page: ActivePage::PasswordsList,
-            passwords_list: vec![
-                Password {
-                    name: "Netflix".to_owned(),
-                },
-                Password {
-                    name: "Google".to_owned(),
-                },
-            ],
+            passwords_list: vec![],
             active_password_record: 0,
             password_input: None,
             password_name_input: None,
