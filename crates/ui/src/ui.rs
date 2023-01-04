@@ -27,6 +27,7 @@ enum ActiveSearchPasswordListSection {
 }
 
 pub struct UI {
+    enabled: bool,
     terminal: Terminal<CrosstermBackend<std::io::Stdout>>,
 }
 
@@ -34,6 +35,7 @@ impl UI {
     pub fn new() -> Self {
         Self {
             terminal: UI::init_terminal().unwrap(),
+            enabled: false,
         }
     }
 
@@ -49,10 +51,14 @@ impl UI {
     pub fn setup_terminal(&mut self) -> Result<()> {
         enable_raw_mode().unwrap();
         self.terminal.backend_mut().execute(EnterAlternateScreen)?;
+        self.enabled = true;
         Ok(())
     }
 
     pub fn shutdown_terminal(&mut self) {
+        if !self.enabled {
+            return;
+        }
         disable_raw_mode().unwrap();
         self.terminal.show_cursor().unwrap();
         let leave_screen = self
@@ -70,6 +76,7 @@ impl UI {
         if let Err(e) = leave_raw_mode {
             eprintln!("leave_raw_mode failed:\n{e}");
         }
+        self.enabled = false;
     }
 
     pub async fn draw(&mut self, state: State) -> Result<(), anyhow::Error> {

@@ -13,6 +13,7 @@ anyhow = "1.0.66"
 rand = "0.8.5"
 rsa = "0.7.2"
 simple_logger = "4.0.0"
+rust-crypto = { package = "rust-crypto", version = "0.2.36" }
 log = { version = "0.4.14", features = [] }
 
 

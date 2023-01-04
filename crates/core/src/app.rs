@@ -3,6 +3,7 @@ use std::{path::PathBuf, process, time::Duration};
 use anyhow::{Ok, Result};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use crypto::signer::Signer;
+use log::debug;
 use shared::{
     events::{Event, KeyCode},
     state::{ActivePage, State},
@@ -13,7 +14,7 @@ use tokio::{
 };
 use ui::{ui::UI, EventLoop};
 
-use crate::files::{delete_password, read_password_bytes, read_passwords_from_path, save_to_file};
+use crate::{files::{delete_password, read_password_bytes, read_passwords_from_path, save_to_file}, exporter::export_private_key};
 
 const TERMINATE_PAGES: [shared::state::ActivePage; 1] = [ActivePage::PasswordsList];
 
@@ -25,11 +26,16 @@ pub struct App {
     event_loop: Option<EventLoop>,
     signer: Signer,
     passwords_dir: PathBuf,
+    export_pgp_secret_file_path: PathBuf,
     should_refresh_passwords: bool,
 }
 
 impl App {
-    pub fn new(signer: Signer, passwords_dir: PathBuf) -> Self {
+    pub fn new(
+        signer: Signer,
+        passwords_dir: PathBuf,
+        export_pgp_secret_file_path: PathBuf,
+    ) -> Self {
         // Send tr_state to integrations loop later
         let mut event_loop = EventLoop::new(Duration::from_millis(8));
         Self {
@@ -41,11 +47,11 @@ impl App {
             event_loop: Some(event_loop),
             signer,
             passwords_dir,
+            export_pgp_secret_file_path,
         }
     }
 
-    async fn run_ui(&mut self) -> Result<()> {
-        let mut ui = self.ui.take().unwrap();
+    async fn run_ui(&mut self, ui: &mut UI) -> Result<()> {
         ui.setup_terminal().unwrap();
         loop {
             if let Some(event) = self.rec_event.recv().await {
@@ -56,13 +62,13 @@ impl App {
                             self.state.passwords_list = passwords;
                             self.should_refresh_passwords = false;
                         }
-                        ui.draw(self.state.clone()).await.unwrap();
+                        ui.draw(self.state.clone()).await?;
                     }
                     Event::KeyEvent(key_code) => {
                         if key_code.is_terminate()
                             && TERMINATE_PAGES.contains(&self.state.active_page)
                         {
-                            self.tr_terminate_event_loop.send(()).unwrap();
+                            self.tr_terminate_event_loop.send(())?;
                             break;
                         }
                         self.handle_input(key_code).await?;
@@ -108,6 +114,9 @@ impl App {
                 }
                 KeyCode::Char('\n') => {
                     self.copy_selected_password_to_clipboard().await?;
+                }
+                KeyCode::Char('x') => {
+                    self.export_pgp_private_key().await?;
                 }
                 _ => {}
             },
@@ -339,7 +348,9 @@ impl App {
     pub async fn run(&mut self) {
         let el = self.event_loop.take().unwrap();
         // Handle state update
-        let _ = join!(el.run(), self.run_ui());
+        let mut ui = self.ui.take().unwrap();
+        let _ = join!(el.run(), self.run_ui(&mut ui));
+        ui.shutdown_terminal();
         process::exit(0);
     }
 
@@ -440,6 +451,22 @@ impl App {
         let mut ctx = ClipboardContext::new().unwrap();
         let plain = String::from_utf8(decrypted).unwrap();
         ctx.set_contents(plain).unwrap();
+        Ok(())
+    }
+
+    async fn export_pgp_private_key(&self) -> Result<()> {
+        debug!("Exporting pgp key");
+        export_private_key(
+            &self.signer,
+            self.state
+                .export_pgp_secret_master_password
+                .as_ref()
+                .unwrap_or(&String::default())
+                .to_string(),
+            &self.export_pgp_secret_file_path,
+        )
+        .await
+        .unwrap_or(());
         Ok(())
     }
 }

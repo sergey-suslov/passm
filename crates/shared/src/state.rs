@@ -23,6 +23,8 @@ pub struct State {
 
     pub password_name_input: Option<String>,
     pub password_input: Option<String>,
+
+    pub export_pgp_secret_master_password: Option<String>,
 }
 
 impl Default for State {
@@ -36,6 +38,7 @@ impl Default for State {
             active_password_record_search: 0,
             password_input: None,
             password_name_input: None,
+            export_pgp_secret_master_password: Some("s".to_owned()),
         }
     }
 }
