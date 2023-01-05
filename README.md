@@ -33,4 +33,5 @@ Main idea of this project is to be as easy in use as centralised password manage
 - [x] Export excrypted pgp secret key to local storage
 - [ ] Sync passwords with a storage of you choise
     - [ ] Dropbox
+    - [ ] IPFS
     - [ ] ...
