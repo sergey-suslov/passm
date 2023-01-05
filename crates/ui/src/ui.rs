@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use anyhow::Result;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
@@ -7,6 +9,7 @@ use shared::state::ActivePage;
 use shared::{password::Password, state::State};
 
 use tui::style::Style;
+use tui::widgets::{Block, Borders, Paragraph};
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Layout, Rect},
@@ -152,15 +155,22 @@ impl UI {
                     );
                 }
                 ActivePage::ExportPgpLocation => {
+                    let mut title  ="Export file name".to_string();
+                    if state.export_pgp_secret_location_error {
+                        title.push_str("(wrong path)");
+                    }
+                    let loc = &state.export_pgp_secret_location.clone().unwrap();
+                    let path =Path::new(loc);
                     Self::render_centered_input(
                         f,
                         size,
-                        "Export file name".to_string(),
+                        title,
                         state
-                            .export_pgp_secret_location
+                            .export_pgp_secret_location.clone()
                             .unwrap_or_else(|| "".to_owned()),
                         ActivePage::ExportPgpLocation,
-                        None,
+                        // Some(path.canonicalize().unwrap_or_default().to_str().unwrap_or("false").to_string())
+                        Some("This is the location where the encrypted file will be stored.".to_string()),
                     );
                 }
                 ActivePage::ExportPgpMasterPassword => {
@@ -172,7 +182,7 @@ impl UI {
                             .export_pgp_secret_master_password
                             .unwrap_or_else(|| "".to_owned()),
                         ActivePage::ExportPgpMasterPassword,
-                        None,
+                        Some("You pgp key will be encrypted with your master password using AES excryption, make sure to use a strong password.".to_string()),
                     );
                 }
             }
@@ -188,13 +198,28 @@ impl UI {
         page: ActivePage,
         note: Option<String>,
     ) {
-        let mut root_layout = Self::get_centered_input_layout(size);
+        let mut root_layout = Self::get_input_with_note_layout(size);
 
         let location_frame = root_layout.get_mut(0).unwrap();
         f.render_widget(LabeledInput::new(text, label, None), *location_frame);
 
+        if let Some(note) = note {
+            let note_frame = root_layout.get_mut(1).unwrap();
+            f.render_widget(
+                Paragraph::new(note)
+                    .block(
+                        Block::default()
+                            .border_type(tui::widgets::BorderType::Double)
+                            .border_style(Style::default().fg(tui::style::Color::DarkGray))
+                            .borders(Borders::LEFT | Borders::TOP),
+                    )
+                    .wrap(tui::widgets::Wrap { trim: true }),
+                *note_frame,
+            );
+        }
+
         // Render help tab
-        let help_tab = root_layout.get_mut(1).unwrap();
+        let help_tab = root_layout.get_mut(3).unwrap();
         f.render_widget(HelpTab::new(page), *help_tab);
     }
 
@@ -312,11 +337,19 @@ impl UI {
         f.render_widget(HelpTab::new(ActivePage::PasswordsList), *help_tab);
     }
 
-    fn get_centered_input_layout(size: Rect) -> Vec<Rect> {
+    fn get_input_with_note_layout(size: Rect) -> Vec<Rect> {
         Layout::default()
             .direction(tui::layout::Direction::Vertical)
             .margin(0)
-            .constraints([Constraint::Length(3), Constraint::Length(3)].as_ref())
+            .constraints(
+                [
+                    Constraint::Length(3),
+                    Constraint::Length(3),
+                    Constraint::Min(10),
+                    Constraint::Length(3),
+                ]
+                .as_ref(),
+            )
             .split(size)
     }
 

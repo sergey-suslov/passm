@@ -31,6 +31,7 @@ pub struct State {
     pub password_input: Option<String>,
 
     pub export_pgp_secret_location: Option<String>,
+    pub export_pgp_secret_location_error: bool,
     pub export_pgp_secret_master_password: Option<String>,
 }
 
@@ -47,6 +48,7 @@ impl Default for State {
             password_name_input: None,
             export_pgp_secret_master_password: None,
             export_pgp_secret_location: None,
+            export_pgp_secret_location_error: false,
         }
     }
 }

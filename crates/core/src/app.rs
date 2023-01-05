@@ -1,4 +1,9 @@
-use std::{path::PathBuf, process, str::FromStr, time::Duration};
+use std::{
+    path::{Path, PathBuf},
+    process,
+    str::FromStr,
+    time::Duration,
+};
 
 use anyhow::{Ok, Result};
 use clipboard::{ClipboardContext, ClipboardProvider};
@@ -9,7 +14,7 @@ use shared::{
     state::{ActivePage, State},
 };
 use tokio::{
-    join,
+    fs, join,
     sync::{broadcast::Sender, mpsc::UnboundedReceiver},
 };
 use ui::{ui::UI, EventLoop};
@@ -106,12 +111,15 @@ impl App {
                     self.state.active_page = ActivePage::SearchPasswordsListName;
                 }
                 KeyCode::Char('p') => {
-                    self.state.export_pgp_secret_location = Some(
-                        self.export_pgp_secret_file_path
-                            .to_str()
-                            .unwrap()
-                            .to_string(),
-                    );
+                    let mut dir_root = self
+                        .export_pgp_secret_file_path
+                        .parent()
+                        .map(|r| r.canonicalize().unwrap_or(r.to_path_buf()))
+                        .unwrap_or(self.export_pgp_secret_file_path.clone());
+                    dir_root.push(self.export_pgp_secret_file_path.file_name().unwrap());
+                    self.state.export_pgp_secret_location =
+                        Some(dir_root.to_str().unwrap().to_string());
+                    self.state.export_pgp_secret_location_error = false;
                     self.state.export_pgp_secret_master_password = Some("".to_string());
                     self.state.active_page = ActivePage::ExportPgpLocation;
                 }
@@ -357,7 +365,11 @@ impl App {
             ActivePage::ExportPgpLocation => match input {
                 KeyCode::Char('\n') => {
                     // TODO add check for location validity
-                    self.state.active_page = ActivePage::ExportPgpMasterPassword;
+                    if !self.check_if_pgp_export_location_valid().await? {
+                        self.state.export_pgp_secret_location_error = true;
+                    } else {
+                        self.state.active_page = ActivePage::ExportPgpMasterPassword;
+                    }
                 }
                 KeyCode::Ctrl('c') => {
                     self.state.export_pgp_secret_master_password = None;
@@ -455,7 +467,9 @@ impl App {
 
     async fn save_password(&self, name: String, text: String) -> Result<()> {
         let encryped = self.signer.encrypt(text.as_bytes())?;
-        save_to_file(&encryped, &self.passwords_dir.join(name)).await?;
+        save_to_file(&encryped, &self.passwords_dir.join(name))
+            .await
+            .expect("Expect to save");
         Ok(())
     }
 
@@ -527,6 +541,15 @@ impl App {
         Ok(())
     }
 
+    async fn check_if_pgp_export_location_valid(&self) -> Result<bool> {
+        if let Some(loc) = &self.state.export_pgp_secret_location {
+            if loc.is_empty() {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
     async fn export_pgp_private_key(&self) -> Result<()> {
         debug!("Exporting pgp key");
         export_private_key(
@@ -536,7 +559,7 @@ impl App {
                 .as_ref()
                 .unwrap_or(&String::default())
                 .to_string(),
-            &PathBuf::from_str(
+            PathBuf::from_str(
                 self.state
                     .export_pgp_secret_location
                     .as_ref()
@@ -544,7 +567,8 @@ impl App {
             )?,
         )
         .await
-        .unwrap_or(());
+        .unwrap();
+        debug!("Exported pgp key");
         Ok(())
     }
 }
