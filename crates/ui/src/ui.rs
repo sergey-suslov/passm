@@ -151,9 +151,51 @@ impl UI {
                         ActiveSearchPasswordListSection::Body,
                     );
                 }
+                ActivePage::ExportPgpLocation => {
+                    Self::render_centered_input(
+                        f,
+                        size,
+                        "Export file name".to_string(),
+                        state
+                            .export_pgp_secret_location
+                            .unwrap_or_else(|| "".to_owned()),
+                        ActivePage::ExportPgpLocation,
+                        None,
+                    );
+                }
+                ActivePage::ExportPgpMasterPassword => {
+                    Self::render_centered_input(
+                        f,
+                        size,
+                        "Master password".to_string(),
+                        state
+                            .export_pgp_secret_master_password
+                            .unwrap_or_else(|| "".to_owned()),
+                        ActivePage::ExportPgpMasterPassword,
+                        None,
+                    );
+                }
             }
         })?;
         Ok(())
+    }
+
+    fn render_centered_input<B: Backend>(
+        f: &mut Frame<B>,
+        size: Rect,
+        label: String,
+        text: String,
+        page: ActivePage,
+        note: Option<String>,
+    ) {
+        let mut root_layout = Self::get_centered_input_layout(size);
+
+        let location_frame = root_layout.get_mut(0).unwrap();
+        f.render_widget(LabeledInput::new(text, label, None), *location_frame);
+
+        // Render help tab
+        let help_tab = root_layout.get_mut(1).unwrap();
+        f.render_widget(HelpTab::new(page), *help_tab);
     }
 
     fn render_create_edit_password<B: Backend>(
@@ -268,6 +310,14 @@ impl UI {
         // Render help tab
         let help_tab = root_layout.get_mut(1).unwrap();
         f.render_widget(HelpTab::new(ActivePage::PasswordsList), *help_tab);
+    }
+
+    fn get_centered_input_layout(size: Rect) -> Vec<Rect> {
+        Layout::default()
+            .direction(tui::layout::Direction::Vertical)
+            .margin(0)
+            .constraints([Constraint::Length(3), Constraint::Length(3)].as_ref())
+            .split(size)
     }
 
     fn get_passwords_layout(size: Rect) -> Vec<Rect> {

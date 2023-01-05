@@ -1,4 +1,4 @@
-use std::{path::PathBuf, process, time::Duration};
+use std::{path::PathBuf, process, str::FromStr, time::Duration};
 
 use anyhow::{Ok, Result};
 use clipboard::{ClipboardContext, ClipboardProvider};
@@ -14,7 +14,10 @@ use tokio::{
 };
 use ui::{ui::UI, EventLoop};
 
-use crate::{files::{delete_password, read_password_bytes, read_passwords_from_path, save_to_file}, exporter::export_private_key};
+use crate::{
+    exporter::export_private_key,
+    files::{delete_password, read_password_bytes, read_passwords_from_path, save_to_file},
+};
 
 const TERMINATE_PAGES: [shared::state::ActivePage; 1] = [ActivePage::PasswordsList];
 
@@ -101,6 +104,16 @@ impl App {
                 KeyCode::Char('/') => {
                     self.state.passwords_list_search = self.state.passwords_list.clone();
                     self.state.active_page = ActivePage::SearchPasswordsListName;
+                }
+                KeyCode::Char('p') => {
+                    self.state.export_pgp_secret_location = Some(
+                        self.export_pgp_secret_file_path
+                            .to_str()
+                            .unwrap()
+                            .to_string(),
+                    );
+                    self.state.export_pgp_secret_master_password = Some("".to_string());
+                    self.state.active_page = ActivePage::ExportPgpLocation;
                 }
                 KeyCode::Char('a') => {
                     self.state.active_page = ActivePage::CreateNewPasswordName;
@@ -341,6 +354,66 @@ impl App {
                 }
                 _ => {}
             },
+            ActivePage::ExportPgpLocation => match input {
+                KeyCode::Char('\n') => {
+                    // TODO add check for location validity
+                    self.state.active_page = ActivePage::ExportPgpMasterPassword;
+                }
+                KeyCode::Ctrl('c') => {
+                    self.state.export_pgp_secret_master_password = None;
+                    self.state.export_pgp_secret_location = None;
+                    self.state.active_page = ActivePage::PasswordsList;
+                }
+                KeyCode::Backspace => {
+                    let mut curr = self
+                        .state
+                        .export_pgp_secret_location
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.pop();
+                    self.state.export_pgp_secret_location = Some(curr);
+                }
+                KeyCode::Char(char) => {
+                    let mut curr = self
+                        .state
+                        .export_pgp_secret_location
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.push(char);
+                    self.state.export_pgp_secret_location = Some(curr);
+                }
+                _ => {}
+            },
+            ActivePage::ExportPgpMasterPassword => match input {
+                KeyCode::Char('\n') => {
+                    self.export_pgp_private_key().await?;
+                    self.state.active_page = ActivePage::PasswordsList;
+                }
+                KeyCode::Ctrl('c') => {
+                    self.state.export_pgp_secret_master_password = None;
+                    self.state.export_pgp_secret_location = None;
+                    self.state.active_page = ActivePage::PasswordsList;
+                }
+                KeyCode::Backspace => {
+                    let mut curr = self
+                        .state
+                        .export_pgp_secret_master_password
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.pop();
+                    self.state.export_pgp_secret_master_password = Some(curr);
+                }
+                KeyCode::Char(char) => {
+                    let mut curr = self
+                        .state
+                        .export_pgp_secret_master_password
+                        .take()
+                        .unwrap_or_else(|| "".to_owned());
+                    curr.push(char);
+                    self.state.export_pgp_secret_master_password = Some(curr);
+                }
+                _ => {}
+            },
         }
         Ok(())
     }
@@ -463,7 +536,12 @@ impl App {
                 .as_ref()
                 .unwrap_or(&String::default())
                 .to_string(),
-            &self.export_pgp_secret_file_path,
+            &PathBuf::from_str(
+                self.state
+                    .export_pgp_secret_location
+                    .as_ref()
+                    .unwrap_or(&String::default()),
+            )?,
         )
         .await
         .unwrap_or(());

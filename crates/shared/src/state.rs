@@ -3,12 +3,18 @@ use crate::password::Password;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ActivePage {
     PasswordsList,
+
     CreateNewPasswordName,
     CreateNewPasswordBody,
+
     EditPasswordName,
     EditPasswordBody,
+
     SearchPasswordsList,
     SearchPasswordsListName,
+
+    ExportPgpLocation,
+    ExportPgpMasterPassword,
 }
 
 #[derive(Clone)]
@@ -24,6 +30,7 @@ pub struct State {
     pub password_name_input: Option<String>,
     pub password_input: Option<String>,
 
+    pub export_pgp_secret_location: Option<String>,
     pub export_pgp_secret_master_password: Option<String>,
 }
 
@@ -38,7 +45,8 @@ impl Default for State {
             active_password_record_search: 0,
             password_input: None,
             password_name_input: None,
-            export_pgp_secret_master_password: Some("s".to_owned()),
+            export_pgp_secret_master_password: None,
+            export_pgp_secret_location: None,
         }
     }
 }

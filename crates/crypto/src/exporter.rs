@@ -118,6 +118,5 @@ mod tests {
         let plain =
             import_private_key_bytes(cyphertext, "secret".to_string()).expect("error encrypting");
         assert_eq!(String::from_utf8(plain).unwrap(), "pgp".to_string());
-        assert!(false);
     }
 }
