@@ -72,6 +72,10 @@ impl Signer {
             .unwrap()
     }
 
+    pub fn export_private_key(&self) -> Result<String> {
+        Ok(self.signing_key.to_armored_string(None)?)
+    }
+
     pub fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>> {
         let mut decrypted: Vec<u8> = vec![];
 

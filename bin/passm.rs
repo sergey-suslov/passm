@@ -9,7 +9,7 @@ use simple_logger::SimpleLogger;
 #[tokio::main]
 async fn main() -> Result<()> {
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Info)
+        .with_level(log::LevelFilter::Debug)
         .init()
         .unwrap();
     let namespace_configuration = Configuration::init().unwrap();
@@ -30,7 +30,7 @@ async fn main() -> Result<()> {
 
             let signed = Signer::sign_key(sk, Some(passphrase));
             fs::write(
-                namespace_configuration.private_key_path,
+                namespace_configuration.private_key_path.clone(),
                 signed.to_armored_string(None).unwrap(),
             )
             .unwrap();
@@ -45,7 +45,13 @@ async fn main() -> Result<()> {
     });
     let signer = Signer::new(ssk, Some(passphrase));
 
-    let mut app = App::new(signer, namespace_configuration.passwords_dir);
+    let mut export_pgp_secret_path = namespace_configuration.private_key_path.clone();
+    export_pgp_secret_path.push_str(".aes");
+    let mut app = App::new(
+        signer,
+        namespace_configuration.passwords_dir,
+        export_pgp_secret_path.into(),
+    );
     app.run().await;
 
     Ok(())

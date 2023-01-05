@@ -17,7 +17,7 @@ impl Widget for HelpTab {
     fn render(self, area: tui::layout::Rect, buf: &mut tui::buffer::Buffer) {
         let message = match self.page {
             ActivePage::PasswordsList => {
-                "a: create new | e: edit entry | d: delete entry | /: search | q/Ctrl+c: quit"
+                "a: create new | e: edit entry | d: delete entry | /: search | q/Ctrl+c: quit | p: export secret key"
             }
             ActivePage::CreateNewPasswordName => "Ctrl+c: cancel | Enter/Tab: continue",
             ActivePage::CreateNewPasswordBody => "Ctrl+c: cancel | Shift+Tab: back | Ctrl+d: save",
@@ -27,6 +27,8 @@ impl Widget for HelpTab {
                 "a: create new | e: edit entry | d: delete entry | Ctrl+c/Esc: back"
             }
             ActivePage::SearchPasswordsListName => "Ctrl+c: cancel | Enter/Tab: continue",
+            ActivePage::ExportPgpLocation => "Ctrl+c: cancel | Enter: continue",
+            ActivePage::ExportPgpMasterPassword => "Ctrl+c: cancel | Shift+Tab: back | Enter: export",
         };
         let block = Paragraph::new(message).block(get_bordered_block().title("Hotkeys"));
         tui::widgets::Widget::render(block, area, buf);

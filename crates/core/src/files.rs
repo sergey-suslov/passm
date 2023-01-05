@@ -1,11 +1,16 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
+
 use shared::password::Password;
 use tokio::fs;
 
 pub async fn save_to_file(content: &[u8], path: &PathBuf) -> Result<()> {
-    fs::write(path, content).await?;
+    let parent_dir = path.parent().expect("expect pathname with a parent");
+    fs::create_dir_all(parent_dir)
+        .await
+        .expect("expect to create dirs");
+    fs::write(path, content).await.expect("expect to write");
     Ok(())
 }
 
