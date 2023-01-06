@@ -10,7 +10,7 @@
 
 **Passm strives to make self hosted password management as easy as possible.** 
 
-Main idea of this project is to be as easy in use as centralised password managers (e.g. lastpass) by providing syncing capabilities to user owned storages. Passwords and encrypting keys are stored localy but can be exported and imorted from multiple providers (e.g. Dropbox, github). While passwords are encrypted by user's pgp private keys, private keys themselfs are encrypted with master password when exported.
+Main idea of this project is to be as easy in use as centralised password managers (e.g. lastpass) by providing syncing capabilities to user owned storages. Passwords and encryption keys are stored locally but can be exported and imported from multiple providers (e.g. Dropbox, github). While passwords are encrypted by user's pgp private keys, private keys themselves are encrypted with master password when exported.
 
 <br/>
 
@@ -29,9 +29,9 @@ Main idea of this project is to be as easy in use as centralised password manage
 ## Roadmap
 
 - [x] PGP key generation
-- [x] Create/Edit/Delete you passwords
-- [x] Export excrypted pgp secret key to local storage
-- [ ] Sync passwords with a storage of you choise
+- [x] Create/Edit/Delete your passwords
+- [x] Export encrypted PGP secret key to local storage
+- [ ] Sync passwords with a storage of your choice
     - [ ] Dropbox
     - [ ] IPFS
     - [ ] ...
