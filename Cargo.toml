@@ -12,6 +12,7 @@ members = [
   "crates/shared",
   "crates/crypto",
   "crates/config",
+  "crates/storage",
 ]
 
 [[bin]]

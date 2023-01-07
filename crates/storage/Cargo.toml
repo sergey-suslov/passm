@@ -1,0 +1,12 @@
+[package]
+name = "storage"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ipfs-api-backend-hyper = "0.6"
+ipfs-api = "0.17.0"
+log = { version = "0.4.14", features = [] }
+anyhow = "1.0.66"
